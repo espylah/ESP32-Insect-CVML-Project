@@ -11,9 +11,21 @@ insert into users (username, password, enabled) values ('alice@test.com', '{noop
 insert into authorities (username, authority) values ('alice@test.com', 'ROLE_USER');
 
 insert into species(species, description)
-values ('APIS_MELLIFERA', 'Honey bee.'),
-       ('VESPA_CABRO', 'European Hornet.'),
-       ('VESPA_VELUTINA_NIGRITHORAX', 'Yellow Legged Asian Hornet - Nigrithorax.');
+values
+-- Core targets
+('APIS_MELLIFERA', 'Western honey bee (Apis mellifera).'),
+('VESPA_CRABRO', 'European hornet (Vespa crabro).'),
+('VESPA_VELUTINA_NIGRITHORAX', 'Asian hornet (Vespa velutina nigrithorax).'),
+('VESPULA_VULGARIS', 'Common wasp (Vespula vulgaris).'),
+('VESPULA_GERMANICA', 'German wasp (Vespula germanica).'),
+('DOLICHOVESPULA_MEDIA', 'Median wasp (Dolichovespula media).'),
+('POLISTES_DOMINULA', 'European paper wasp (Polistes dominula).'),
+('BOMBUS_TERRESTRIS', 'Buff-tailed bumblebee (Bombus terrestris).'),
+('BOMBUS_PASCUORUM', 'Common carder bee (Bombus pascuorum).'),
+('EPISYRPHUS_BALTEATUS', 'Marmalade hoverfly (Episyrphus balteatus).'),
+('VOLUCELLA_ZONARIA', 'Hornet mimic hoverfly (Volucella zonaria).'),
+('CALLIPHORA_VICINA', 'Bluebottle fly (Calliphora vicina).'),
+('LUCILIA_SERICATA', 'Green bottle fly (Lucilia sericata).');
 
 insert into devices (id, name, run_mode, device_state, device_enabled, username, created_at, updated_at, last_seen_at)
 values
@@ -38,18 +50,18 @@ values
     ('d1000000-0000-0000-0000-000000000001', 'APIS_MELLIFERA',              75.0),
     ('d1000000-0000-0000-0000-000000000001', 'VESPA_VELUTINA_NIGRITHORAX',  80.0),
     ('d1000000-0000-0000-0000-000000000002', 'APIS_MELLIFERA',              70.0),
-    ('d1000000-0000-0000-0000-000000000002', 'VESPA_CABRO',                 65.0),
+    ('d1000000-0000-0000-0000-000000000002', 'VESPA_CRABRO',                 65.0),
     ('d1000000-0000-0000-0000-000000000003', 'VESPA_VELUTINA_NIGRITHORAX',  85.0),
     ('d1000000-0000-0000-0000-000000000004', 'APIS_MELLIFERA',              72.0),
-    ('d1000000-0000-0000-0000-000000000005', 'VESPA_CABRO',                 60.0),
+    ('d1000000-0000-0000-0000-000000000005', 'VESPA_CRABRO',                 60.0),
     ('d1000000-0000-0000-0000-000000000005', 'VESPA_VELUTINA_NIGRITHORAX',  78.0),
     ('d1000000-0000-0000-0000-000000000006', 'APIS_MELLIFERA',              70.0),
     ('d1000000-0000-0000-0000-000000000008', 'VESPA_VELUTINA_NIGRITHORAX',  90.0),
     ('d1000000-0000-0000-0000-000000000009', 'APIS_MELLIFERA',              68.0),
-    ('d1000000-0000-0000-0000-000000000009', 'VESPA_CABRO',                 72.0),
+    ('d1000000-0000-0000-0000-000000000009', 'VESPA_CRABRO',                 72.0),
     ('d1000000-0000-0000-0000-000000000011', 'VESPA_VELUTINA_NIGRITHORAX',  82.0),
     ('d1000000-0000-0000-0000-000000000012', 'APIS_MELLIFERA',              75.0),
     ('d1000000-0000-0000-0000-000000000013', 'APIS_MELLIFERA',              71.0),
     ('d1000000-0000-0000-0000-000000000013', 'VESPA_VELUTINA_NIGRITHORAX',  77.0),
-    ('d1000000-0000-0000-0000-000000000015', 'VESPA_CABRO',                 65.0),
+    ('d1000000-0000-0000-0000-000000000015', 'VESPA_CRABRO',                 65.0),
     ('d1000000-0000-0000-0000-000000000015', 'VESPA_VELUTINA_NIGRITHORAX',  88.0);

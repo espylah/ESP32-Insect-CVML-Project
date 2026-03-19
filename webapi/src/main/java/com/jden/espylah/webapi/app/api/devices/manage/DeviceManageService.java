@@ -7,6 +7,5 @@ import java.util.UUID;
 
 public interface DeviceManageService {
     boolean setEnabled(Authentication authentication, UUID deviceId, boolean enabled);
-    void unprovision(Authentication authentication, UUID deviceId);
     void updateDevice(Authentication authentication, UUID deviceId, CreateDeviceRequest request);
 }

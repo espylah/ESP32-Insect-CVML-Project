@@ -12,7 +12,7 @@ public class CsrfController {
 
     @GetMapping("/api/csrf")
     public String csrf(CsrfToken csrfToken, Authentication authentication) {
-        log.info("{} Requesting CSRF token: {}", authentication == null ? "ANON" : authentication.getName(), csrfToken.getToken());
+        log.debug("{} Requesting CSRF token.", authentication == null ? "ANON" : authentication.getName());
         return "OK";
     }
 }

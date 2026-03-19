@@ -48,21 +48,6 @@ public class DeviceManageServiceImpl implements DeviceManageService {
 
     @Override
     @Transactional
-    public void unprovision(Authentication authentication, UUID deviceId) {
-        Device device = findOwned(authentication, deviceId);
-        if (device.getState() != Device.State.PROVISIONED) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device is not provisioned");
-        }
-        device.setState(Device.State.UNPROVISIONED);
-        device.setApiToken(null);
-        device.setDeviceMac(null);
-        device.setDeviceMacStr(null);
-        deviceRepo.save(device);
-        log.info("Device {} unprovisioned", deviceId);
-    }
-
-    @Override
-    @Transactional
     public void updateDevice(Authentication authentication, UUID deviceId, CreateDeviceRequest request) {
         Device device = deviceRepo.findByIdAndFetchTree(deviceId)
                 .filter(d -> d.getUser().getUsername().equals(authentication.getName()))
@@ -72,7 +57,7 @@ public class DeviceManageServiceImpl implements DeviceManageService {
         device.setRunMode(request.runmode());
 
         Map<String, Double> requestedMap = request.targetSpecies().stream()
-                .collect(Collectors.toMap(SpecieTarget::specie, SpecieTarget::threshold));
+                .collect(Collectors.toMap(SpecieTarget::specie, SpecieTarget::threshold, (a, b) -> b));
 
         // Remove targets no longer requested
         device.getSpeciesTargets().removeIf(st -> !requestedMap.containsKey(st.getId().getSpecies()));

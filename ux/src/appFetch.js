@@ -3,6 +3,8 @@
  * Credentials (cookies)
  * X-XSRF-TOKEN header
  */
+import { router } from './main.jsx';
+
 export async function appFetch(url, options = {}) {
 
     const defaultOptions = {
@@ -27,5 +29,9 @@ export async function appFetch(url, options = {}) {
         opts.body = JSON.stringify(opts.body);
     }
 
-    return fetch(url, opts);
+    const res = await fetch(url, opts);
+    if (res.status === 401) {
+        router.navigate('/login');
+    }
+    return res;
 }
