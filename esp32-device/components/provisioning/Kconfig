@@ -1,0 +1,26 @@
+menu "Provisioning Configuration" 
+
+config API_HOST
+    string "API hostname - e.g. api.myserver.com or an ip address if testing locally e.g. 192.168.1.23"
+    default "192.168.68.108"
+    help
+    The hostname the web API is located.
+
+config API_PROTOCOL
+    boolean "Use https"
+    default true
+    help
+    Enforce HTTPS use vs HTTP.
+
+
+config API_PORT
+    int "API port - The port the api is reachable on."
+    default 8080
+    help The port the web API accepts requests.
+
+config DEVICE_REGISTER_PATH
+    string "Device register path"
+    default "/device-api/register"
+    help The api path to register the ESP32 device.
+
+endmenu

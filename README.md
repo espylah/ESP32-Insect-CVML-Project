@@ -22,8 +22,10 @@ Supported target species: *Apis mellifera* (honey bee), *Vespa crabro* (European
 
 ```
 web/
-├── webapi/   # Spring Boot backend (REST API, device auth, database)
-└── ux/       # React frontend (device dashboard, provisioning UI)
+├── webapi/        # Spring Boot backend (REST API, device auth, database)
+├── ux/            # React frontend (device dashboard, provisioning UI)
+├── esp32-device/  # ESP-IDF firmware for the ESP32-S3 camera node
+└── provisioners/  # Desktop tools for provisioning devices over serial
 ```
 
 | Layer | Technology |
@@ -154,3 +156,126 @@ By default the backend uses an **H2 in-memory database** that resets on every re
 ```
 
 Schema must exist before running with `DDL_AUTO=none`. Use `DDL_AUTO=create` on first run to generate it.
+
+---
+
+## ESP32 Device (`esp32-device/`)
+
+### Hardware Role
+
+Each ESP32 node is a self-contained edge inference unit:
+
+- **Camera** — captures images via an OV2640 or compatible module
+- **On-device YOLO** — runs a lightweight model to detect target species
+- **Backend reporting** — sends detection events (species, confidence, timestamp) to the API using a long-lived API key obtained during provisioning
+
+The backend does **not** run inference; it only stores and coordinates results.
+
+### Boot Flow
+
+On every cold boot the device opens a 5-second provisioning window before proceeding to normal sensing operation.
+
+```
+Cold boot
+    │
+    ├── Init NVS, TCP/IP, Wi-Fi, BLE + provisioning service
+    ├── Open serial provisioning console → prints PROVISION:READY
+    └── Wait 5 s for "start_provision" command
+            │
+            ├─ Received → Provision mode (see Provisioning below)
+            │
+            └─ Timeout → Sensing boot
+                    ├── Mount SD card (if enabled)
+                    ├── Init camera, flush 3 warm-up frames
+                    ├── Capture frame → JPEG → save to SD
+                    └── Deep sleep 30 s → repeat
+```
+
+### Serial Provisioning Commands
+
+When the device is in provision mode it accepts these commands via the serial REPL:
+
+| Command | Arguments | Device response |
+|---------|-----------|-----------------|
+| `start_provision` | _(none)_ | `PROVISION:STARTED` |
+| `wifi` | `<SSID words...> <PASSWORD>` | `PROVISION:WIFI_CONNECTED` or `PROVISION:WIFI_FAILED` |
+| `register` | `<REGISTRATION_TOKEN>` | `PROVISION:REGISTERED` or `PROVISION:REGISTRATION_FAILED` |
+
+SSIDs containing spaces are supported — the last token is always treated as the password.
+
+After a successful `register`, the backend issues a long-lived **API key** which the device stores in NVS and uses for all future authenticated requests.
+
+### Build & Flash
+
+Requires [ESP-IDF v5.x](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/).
+
+```bash
+cd esp32-device
+idf.py build
+idf.py -p /dev/ttyACM0 flash
+idf.py -p /dev/ttyACM0 monitor
+```
+
+Key `sdkconfig` / Kconfig options:
+
+| Option | Purpose |
+|--------|---------|
+| `CONFIG_API_HOST` | Backend hostname |
+| `CONFIG_API_PORT` | Backend port |
+| `CONFIG_DEVICE_REGISTER_PATH` | Registration endpoint path (e.g. `/device-api/register`) |
+| `CONFIG_API_USE_HTTPS` | Use HTTPS for backend calls |
+| `SAVE_TO_SD` | Enable SD card image saving |
+
+---
+
+## Provisioning GUI (`provisioners/gui_provisioner/`)
+
+A Python/Tkinter desktop app for provisioning devices over USB serial.
+
+### Prerequisites
+
+```bash
+pip install pyserial
+# tkinter ships with most Python distributions
+# Debian/Ubuntu: sudo apt install python3-tk
+```
+
+### Running
+
+```bash
+cd provisioners/gui_provisioner
+python main.py
+```
+
+### Walkthrough
+
+**1. API Login**
+Enter the backend URL, email, and password, then click **Login**. On success the device list is loaded automatically.
+
+**2. Serial Connection**
+Select the device's serial port (e.g. `/dev/ttyACM0`) and baud rate (`115200`), then click **Connect**. When the ESP32 boots and prints `PROVISION:READY`, the GUI automatically sends `start_provision`.
+
+**3. Select Device**
+Browse the list of unprovisioned devices from the backend. Selecting one fetches its one-time registration token, which is pre-filled in Step B below.
+
+**4. Provision via Serial**
+
+*Step A — Connect Wi-Fi*
+Enter the SSID and password, then click **Connect Wi-Fi**. The **Register** button stays locked until `PROVISION:WIFI_CONNECTED` is received from the device.
+
+*Step B — Register Device*
+Once Wi-Fi is confirmed, click **Register**. On `PROVISION:REGISTERED` the device is fully provisioned and ready to operate.
+
+**5. Manual Command**
+For debugging, arbitrary commands can be sent directly to the REPL.
+
+### Simple Serial Bridge
+
+`provisioners/serialy.py` is a minimal bidirectional bridge for manual testing without the GUI:
+
+```bash
+# Edit SERIAL_PORT at the top of the file, then:
+python provisioners/serialy.py
+```
+
+Type commands directly; device output is printed to stdout.

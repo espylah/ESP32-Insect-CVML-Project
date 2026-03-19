@@ -68,7 +68,7 @@ public class DeviceRegistrationTokenServiceImpl implements DeviceRegistrationTok
         token.setUsed(false);
         token = registrationTokenRepo.save(token);
 
-        log.info("Registration token generated for device {}", deviceId);
+        log.info("Registration token generated for device {}",token);
         return new GetDeviceRegistrationCodeResponse(token.getToken(), token.getExpiresAt().getEpochSecond());
     }
 }
