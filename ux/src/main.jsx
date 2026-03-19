@@ -14,7 +14,7 @@ import { SnackbarProvider } from 'notistack';
 
 
 
-let router = createBrowserRouter([
+export let router = createBrowserRouter([
   {
     path: "/",
     Component: DashboardPage

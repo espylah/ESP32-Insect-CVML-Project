@@ -87,12 +87,6 @@ public class DeviceController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/api/devices/{deviceId}/unprovision")
-    public ResponseEntity<Void> unprovision(Authentication authentication, @PathVariable UUID deviceId) {
-        deviceManageService.unprovision(authentication, deviceId);
-        return ResponseEntity.ok().build();
-    }
-
     @PutMapping("/api/devices/{deviceId}")
     public ResponseEntity<Void> updateDevice(Authentication authentication, @PathVariable UUID deviceId, @RequestBody CreateDeviceRequest request) {
         deviceManageService.updateDevice(authentication, deviceId, request);

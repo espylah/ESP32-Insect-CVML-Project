@@ -5,12 +5,6 @@ import { appFetch } from '../../appFetch';
 import PageWrapperComponent from '../PageWrapperComponent';
 import CreateDeviceForm from './CreateDeviceForm';
 
-const SPECIES_LABELS = {
-    APIS_MELLIFERA: 'Apis mellifera',
-    VESPA_CABRO: 'Vespa crabro',
-    VESPA_VELUTINA_NIGRITHORAX: 'Vespa velutina nigrithorax',
-};
-
 function LastSeenCell({ lastSeenAt }) {
     if (!lastSeenAt) return <span className="text-white-50">Never</span>;
     const seenAt = new Date(lastSeenAt);
@@ -32,6 +26,11 @@ function DashboardPage() {
     const [loading, setLoading] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
     const [speciesCache, setSpeciesCache] = useState({});
+    const [species, setSpecies] = useState([]);
+
+    useEffect(() => {
+        appFetch('/api/species').then(r => r.json()).then(setSpecies);
+    }, []);
 
     useEffect(() => {
         setLoading(true);
@@ -83,21 +82,6 @@ function DashboardPage() {
             });
     }
 
-    function handleUnprovision(device) {
-        appFetch(`/api/devices/${device.id}/unprovision`, { method: 'POST' })
-            .then(res => {
-                if (res.ok) {
-                    enqueueSnackbar('Device unprovisioned', { variant: 'success' });
-                    setPageData(prev => ({
-                        ...prev,
-                        content: prev.content.map(d => d.id === device.id ? { ...d, state: 'UNPROVISIONED' } : d),
-                    }));
-                } else {
-                    enqueueSnackbar('Failed to unprovision device', { variant: 'error' });
-                }
-            });
-    }
-
     function handleEdit(device) {
         appFetch(`/api/devices/${device.id}`)
             .then(res => res.json())
@@ -134,6 +118,8 @@ function DashboardPage() {
         return items;
     }
 
+    const speciesLabels = Object.fromEntries(species.map(s => [s.id, s.description]));
+
     return (
         <PageWrapperComponent pageContent={
             <Container className="py-4">
@@ -153,6 +139,7 @@ function DashboardPage() {
 
                     {view === 'create' && (
                         <CreateDeviceForm
+                            species={species}
                             onSuccess={() => { setRefreshKey(k => k + 1); setView('list'); }}
                             onCancel={() => setView('list')}
                         />
@@ -160,6 +147,7 @@ function DashboardPage() {
 
                     {view === 'edit' && (
                         <CreateDeviceForm
+                            species={species}
                             deviceId={editDeviceId}
                             initialValues={editInitialValues}
                             onSuccess={() => {
@@ -262,16 +250,6 @@ function DashboardPage() {
                                                         >
                                                             {device.enabled ? 'Disable' : 'Enable'}
                                                         </Button>
-                                                        {device.state === 'PROVISIONED' && (
-                                                            <Button
-                                                                variant="outline-warning"
-                                                                size="sm"
-                                                                className="me-1"
-                                                                onClick={() => handleUnprovision(device)}
-                                                            >
-                                                                Unprovision
-                                                            </Button>
-                                                        )}
                                                         <Button
                                                             variant="outline-light"
                                                             size="sm"
@@ -302,7 +280,7 @@ function DashboardPage() {
                                                                             className="border border-secondary"
                                                                             style={{ fontSize: '0.78em' }}
                                                                         >
-                                                                            {SPECIES_LABELS[t.specie] ?? t.specie} — {t.threshold}%
+                                                                                                                            {speciesLabels[t.specie] ?? t.specie} — {t.threshold}%
                                                                         </Badge>
                                                                     ))}
                                                                 </div>

@@ -1,13 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Col, Form, Row } from 'react-bootstrap';
 import { useSnackbar } from 'notistack';
 import { appFetch } from '../../appFetch';
-
-const SPECIES_OPTIONS = [
-    { value: 'APIS_MELLIFERA', label: 'Apis mellifera (Honey Bee)' },
-    { value: 'VESPA_CABRO', label: 'Vespa crabro (European Hornet)' },
-    { value: 'VESPA_VELUTINA_NIGRITHORAX', label: 'Vespa velutina nigrithorax (Asian Hornet)' },
-];
 
 const RUN_MODE_OPTIONS = [
     { value: 'DEFAULT', label: 'Default' },
@@ -15,19 +9,24 @@ const RUN_MODE_OPTIONS = [
     { value: 'TRAINING_UPLOADER', label: 'Training Uploader' },
 ];
 
-const emptySpeciesRow = () => ({ specie: 'APIS_MELLIFERA', threshold: 75 });
-
-function CreateDeviceForm({ onSuccess, onCancel, deviceId = null, initialValues = null }) {
+function CreateDeviceForm({ onSuccess, onCancel, deviceId = null, initialValues = null, species = [] }) {
     const editing = deviceId !== null;
     const { enqueueSnackbar } = useSnackbar();
+    const speciesOptions = species.map(s => ({ value: s.id, label: s.description }));
     const [name, setName] = useState(initialValues?.name ?? '');
     const [runmode, setRunmode] = useState(initialValues?.runMode ?? 'DEFAULT');
     const [targetSpecies, setTargetSpecies] = useState(
         initialValues?.targetSpecies?.length
             ? initialValues.targetSpecies.map(t => ({ specie: t.specie, threshold: t.threshold }))
-            : [emptySpeciesRow()]
+            : []
     );
     const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        if (!editing && species.length > 0 && targetSpecies.length === 0) {
+            setTargetSpecies([{ specie: species[0].id, threshold: 75 }]);
+        }
+    }, [species.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     function handleSpeciesChange(index, field, value) {
         setTargetSpecies(prev => prev.map((row, i) =>
@@ -36,7 +35,12 @@ function CreateDeviceForm({ onSuccess, onCancel, deviceId = null, initialValues 
     }
 
     function addSpeciesRow() {
-        setTargetSpecies(prev => [...prev, emptySpeciesRow()]);
+        setTargetSpecies(prev => {
+            const taken = new Set(prev.map(r => r.specie));
+            const next = speciesOptions.find(opt => !taken.has(opt.value));
+            if (!next) return prev;
+            return [...prev, { specie: next.value, threshold: 75 }];
+        });
     }
 
     function removeSpeciesRow(index) {
@@ -103,14 +107,18 @@ function CreateDeviceForm({ onSuccess, onCancel, deviceId = null, initialValues 
             </Row>
 
             <Form.Label>Target Species</Form.Label>
-            {targetSpecies.map((row, index) => (
+            {targetSpecies.map((row, index) => {
+                const takenByOthers = new Set(
+                    targetSpecies.filter((_, i) => i !== index).map(r => r.specie)
+                );
+                return (
                 <Row key={index} className="mb-2 align-items-center">
                     <Col md={6}>
                         <Form.Select
                             value={row.specie}
                             onChange={e => handleSpeciesChange(index, 'specie', e.target.value)}
                         >
-                            {SPECIES_OPTIONS.map(opt => (
+                            {speciesOptions.filter(opt => !takenByOthers.has(opt.value) || opt.value === row.specie).map(opt => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                         </Form.Select>
@@ -138,8 +146,9 @@ function CreateDeviceForm({ onSuccess, onCancel, deviceId = null, initialValues 
                         )}
                     </Col>
                 </Row>
-            ))}
-            <Button variant="outline-secondary" size="sm" className="mb-4 mt-1" onClick={addSpeciesRow}>
+                );
+            })}
+            <Button variant="outline-secondary" size="sm" className="mb-4 mt-1" onClick={addSpeciesRow} disabled={targetSpecies.length >= speciesOptions.length}>
                 + Add Species
             </Button>
 
