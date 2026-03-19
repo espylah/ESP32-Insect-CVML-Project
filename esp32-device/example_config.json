@@ -1,0 +1,15 @@
+{
+    "name": "Bobs Device",
+    "id": "1a6da463-fe22-40a3-94f4-9e66d17d0a9b",
+    "runMode": "ALWAYS_ON",
+    "targets": [
+        {
+            "specie": "VESPA_CABRO",
+            "threshold": 0.75
+        },
+        {
+            "specie": "VESPA_VELUTINA_NIGRITHORAX",
+            "threshold": 0.71
+        }
+    ]
+}

@@ -7,9 +7,9 @@ import com.jden.espylah.webapi.app.api.devices.list.DeviceFilter;
 import com.jden.espylah.webapi.app.api.devices.list.DeviceListItem;
 import com.jden.espylah.webapi.app.api.devices.list.DeviceListService;
 import com.jden.espylah.webapi.app.api.devices.manage.DeviceManageService;
+import com.jden.espylah.webapi.app.api.devices.registration.device_creation.DeviceCreationService;
 import com.jden.espylah.webapi.app.api.devices.registration.dto.CreateDeviceRequest;
 import com.jden.espylah.webapi.app.api.devices.registration.dto.CreateDeviceResponse;
-import com.jden.espylah.webapi.app.api.devices.registration.device_creation.DeviceCreationService;
 import com.jden.espylah.webapi.app.api.devices.registration.dto.GetDeviceRegistrationCodeResponse;
 import com.jden.espylah.webapi.app.device_api.device_registration.DeviceRegistrationTokenService;
 import com.jden.espylah.webapi.app.device_api.device_registration.RegisterDeviceService;
@@ -60,6 +60,7 @@ public class DeviceController {
 
     @PostMapping("/api/devices/{deviceId}/registration-token")
     public GetDeviceRegistrationCodeResponse getRegistrationTokenForDevice(Authentication authentication, @PathVariable UUID deviceId) {
+        log.info("{}: Getting device registration code for {}", authentication.getName(), deviceId);
         return deviceRegistrationTokenService.getRegistrationTokenForDevice(authentication, deviceId);
     }
 
@@ -93,6 +94,7 @@ public class DeviceController {
         return ResponseEntity.ok().build();
     }
 
-    record SetEnabledRequest(boolean enabled) {}
+    record SetEnabledRequest(boolean enabled) {
+    }
 
 }

@@ -10,7 +10,6 @@ import java.time.Instant;
 @Entity
 @Getter
 @Setter
-@ToString
 @Table(name = "device_registration_tokens")
 public class DeviceRegistrationToken {
 
@@ -28,4 +27,14 @@ public class DeviceRegistrationToken {
     @ManyToOne(fetch = FetchType.LAZY)
     private Device device;
 
+    @Override
+    public String toString() {
+        return "DeviceRegistrationToken{" +
+                "token='" + token + '\'' +
+                ", expiresAt=" + expiresAt +
+                ", used=" + used +
+                ", user=" + user.getUsername() +
+                ", device=" + device.getId() +
+                '}';
+    }
 }

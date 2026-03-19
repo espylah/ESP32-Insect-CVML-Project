@@ -1,9 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Badge, Button, Card, Col, Container, Form, Pagination, Row, Spinner, Table } from 'react-bootstrap';
+import { Badge, Button, Card, Col, Container, Form, Modal, OverlayTrigger, Pagination, Row, Spinner, Table, Tooltip } from 'react-bootstrap';
 import { useSnackbar } from 'notistack';
 import { appFetch } from '../../appFetch';
 import PageWrapperComponent from '../PageWrapperComponent';
 import CreateDeviceForm from './CreateDeviceForm';
+
+const RUN_MODE_HINTS = {
+    DEFAULT: 'Duty-cycle mode — the device sleeps between checks to conserve power.',
+    ALWAYS_ON: 'The device runs continuously, sending detections in real time.',
+    TRAINING_UPLOADER: 'Captures raw images and uploads them for model training rather than reporting detections.',
+};
+
+const STATE_HINTS = {
+    PROVISIONED: 'The device has completed registration and is ready to operate.',
+    UNPROVISIONED: 'Not yet registered — use the provisioning app via serial or BLE to set it up.',
+};
+
+const LAST_SEEN_HINT = 'The last time the device contacted the server. Devices typically check in every few hours.';
+
+function Hint({ text, children, placement = 'top' }) {
+    return (
+        <OverlayTrigger placement={placement} overlay={<Tooltip>{text}</Tooltip>}>
+            {children}
+        </OverlayTrigger>
+    );
+}
 
 function LastSeenCell({ lastSeenAt }) {
     if (!lastSeenAt) return <span className="text-white-50">Never</span>;
@@ -27,6 +48,7 @@ function DashboardPage() {
     const [hoveredId, setHoveredId] = useState(null);
     const [speciesCache, setSpeciesCache] = useState({});
     const [species, setSpecies] = useState([]);
+    const [actionDevice, setActionDevice] = useState(null);
 
     useEffect(() => {
         appFetch('/api/species').then(r => r.json()).then(setSpecies);
@@ -53,8 +75,7 @@ function DashboardPage() {
         setPage(0);
     }
 
-    function handleRowEnter(deviceId) {
-        setHoveredId(deviceId);
+    function fetchSpeciesForDevice(deviceId) {
         if (!speciesCache[deviceId]) {
             appFetch(`/api/devices/${deviceId}`)
                 .then(res => res.json())
@@ -62,8 +83,18 @@ function DashboardPage() {
         }
     }
 
+    function handleRowEnter(deviceId) {
+        setHoveredId(deviceId);
+        fetchSpeciesForDevice(deviceId);
+    }
+
     function handleRowLeave() {
         setHoveredId(null);
+    }
+
+    function handleOpenActionModal(device) {
+        setActionDevice(device);
+        fetchSpeciesForDevice(device.id);
     }
 
     function handleToggleEnabled(device) {
@@ -72,10 +103,12 @@ function DashboardPage() {
             .then(res => {
                 if (res.ok) {
                     enqueueSnackbar(`Device ${next ? 'enabled' : 'disabled'}`, { variant: 'success' });
+                    const updated = { ...device, enabled: next };
                     setPageData(prev => ({
                         ...prev,
-                        content: prev.content.map(d => d.id === device.id ? { ...d, enabled: next } : d),
+                        content: prev.content.map(d => d.id === device.id ? updated : d),
                     }));
+                    if (actionDevice?.id === device.id) setActionDevice(updated);
                 } else {
                     enqueueSnackbar('Failed to update device', { variant: 'error' });
                 }
@@ -88,6 +121,7 @@ function DashboardPage() {
             .then(detail => {
                 setEditDeviceId(device.id);
                 setEditInitialValues({ name: detail.name, runMode: detail.runMode, targetSpecies: detail.targetSpecies });
+                setActionDevice(null);
                 setView('edit');
             });
     }
@@ -119,6 +153,21 @@ function DashboardPage() {
     }
 
     const speciesLabels = Object.fromEntries(species.map(s => [s.id, s.description]));
+
+    function SpeciesBadges({ deviceId }) {
+        const cached = speciesCache[deviceId];
+        if (cached === undefined) return <Spinner animation="border" size="sm" variant="light" />;
+        if (cached.length === 0) return <span className="text-white-50 small">No target species configured</span>;
+        return (
+            <div className="d-flex gap-2 flex-wrap">
+                {cached.map(t => (
+                    <Badge key={t.specie} bg="dark" className="border border-secondary" style={{ fontSize: '0.78em' }}>
+                        {speciesLabels[t.specie] ?? t.specie} — {t.threshold}%
+                    </Badge>
+                ))}
+            </div>
+        );
+    }
 
     return (
         <PageWrapperComponent pageContent={
@@ -159,58 +208,65 @@ function DashboardPage() {
                         />
                     )}
 
-                    {view === 'list' && <><Row className="mb-3 g-2" data-bs-theme="dark">
-                        <Col md={4}>
-                            <Form.Control
-                                name="name"
-                                placeholder="Search by name"
-                                value={filters.name}
-                                onChange={handleFilterChange}
-                            />
-                        </Col>
-                        <Col md={3}>
-                            <Form.Select name="state" value={filters.state} onChange={handleFilterChange}>
-                                <option value="">All states</option>
-                                <option value="PROVISIONED">Provisioned</option>
-                                <option value="UNPROVISIONED">Unprovisioned</option>
-                            </Form.Select>
-                        </Col>
-                        <Col md={3}>
-                            <Form.Select name="runMode" value={filters.runMode} onChange={handleFilterChange}>
-                                <option value="">All run modes</option>
-                                <option value="DEFAULT">Default</option>
-                                <option value="ALWAYS_ON">Always On</option>
-                                <option value="TRAINING_UPLOADER">Training Uploader</option>
-                            </Form.Select>
-                        </Col>
-                        <Col md={2}>
-                            <Form.Select name="enabled" value={filters.enabled} onChange={handleFilterChange}>
-                                <option value="">Any status</option>
-                                <option value="true">Enabled</option>
-                                <option value="false">Disabled</option>
-                            </Form.Select>
-                        </Col>
-                        <Col md={2}>
-                            <Form.Select name="online" value={filters.online} onChange={handleFilterChange}>
-                                <option value="">All devices</option>
-                                <option value="true">Online only</option>
-                            </Form.Select>
-                        </Col>
-                    </Row>
+                    {view === 'list' && <>
+                        <Row className="mb-3 g-2" data-bs-theme="dark">
+                            <Col md={4}>
+                                <Form.Control
+                                    name="name"
+                                    placeholder="Search by name"
+                                    value={filters.name}
+                                    onChange={handleFilterChange}
+                                />
+                            </Col>
+                            <Col md={3}>
+                                <Form.Select name="state" value={filters.state} onChange={handleFilterChange}>
+                                    <option value="">All states</option>
+                                    <option value="PROVISIONED">Provisioned</option>
+                                    <option value="UNPROVISIONED">Unprovisioned</option>
+                                </Form.Select>
+                            </Col>
+                            <Col md={3}>
+                                <Form.Select name="runMode" value={filters.runMode} onChange={handleFilterChange}>
+                                    <option value="">All run modes</option>
+                                    <option value="DEFAULT">Default</option>
+                                    <option value="ALWAYS_ON">Always On</option>
+                                    <option value="TRAINING_UPLOADER">Training Uploader</option>
+                                </Form.Select>
+                            </Col>
+                            <Col md={2}>
+                                <Form.Select name="enabled" value={filters.enabled} onChange={handleFilterChange}>
+                                    <option value="">Any status</option>
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </Form.Select>
+                            </Col>
+                            <Col md={2}>
+                                <Form.Select name="online" value={filters.online} onChange={handleFilterChange}>
+                                    <option value="">All devices</option>
+                                    <option value="true">Online only</option>
+                                </Form.Select>
+                            </Col>
+                        </Row>
 
-                    <Row>
-                        <Col>
-                            {loading ? (
-                                <div className="text-center py-5"><Spinner animation="border" variant="light" /></div>
-                            ) : (
+                        {loading ? (
+                            <div className="text-center py-5"><Spinner animation="border" variant="light" /></div>
+                        ) : (<>
+                            {/* Desktop table — hidden on mobile */}
+                            <div className="d-none d-md-block">
                                 <Table variant="dark" hover responsive style={{ background: 'transparent' }}>
                                     <thead>
                                         <tr>
                                             <th>Name</th>
-                                            <th>Run Mode</th>
-                                            <th>State</th>
+                                            <th><Hint text="How the device operates between detections.">
+                                                <span style={{ cursor: 'help', borderBottom: '1px dashed' }}>Run Mode</span>
+                                            </Hint></th>
+                                            <th><Hint text="Whether the device has completed the provisioning process.">
+                                                <span style={{ cursor: 'help', borderBottom: '1px dashed' }}>State</span>
+                                            </Hint></th>
                                             <th>Enabled</th>
-                                            <th>Last Seen</th>
+                                            <th><Hint text={LAST_SEEN_HINT}>
+                                                <span style={{ cursor: 'help', borderBottom: '1px dashed' }}>Last Seen</span>
+                                            </Hint></th>
                                             <th>Created</th>
                                             <th></th>
                                         </tr>
@@ -228,20 +284,33 @@ function DashboardPage() {
                                                     onMouseLeave={handleRowLeave}
                                                 >
                                                     <td>{device.name}</td>
-                                                    <td className="text-capitalize">{device.runMode?.toLowerCase().replaceAll('_', ' ')}</td>
                                                     <td>
+                                                        <Hint text={RUN_MODE_HINTS[device.runMode] ?? device.runMode}>
+                                                            <span className="text-capitalize">{device.runMode?.toLowerCase().replaceAll('_', ' ')}</span>
+                                                        </Hint>
+                                                    </td>
+                                                    <td>
+                                                        <Hint text={STATE_HINTS[device.state] ?? device.state}>
                                                         <Badge bg={device.state === 'PROVISIONED' ? 'success' : 'secondary'}>
                                                             {device.state}
                                                         </Badge>
+                                                        </Hint>
                                                     </td>
                                                     <td>
                                                         <Badge bg={device.enabled ? 'success' : 'danger'}>
                                                             {device.enabled ? 'Yes' : 'No'}
                                                         </Badge>
                                                     </td>
-                                                    <td><LastSeenCell lastSeenAt={device.lastSeenAt} /></td>
+                                                    <td><Hint text={LAST_SEEN_HINT}><span><LastSeenCell lastSeenAt={device.lastSeenAt} /></span></Hint></td>
                                                     <td>{new Date(device.createdAt).toLocaleDateString()}</td>
                                                     <td className="text-end text-nowrap">
+                                                        <OverlayTrigger
+                                                            placement="top"
+                                                            overlay={device.enabled
+                                                                ? <Tooltip>The device stays active but detections will be ignored by the system.</Tooltip>
+                                                                : <Tooltip>Re-enable the device so its detections are processed.</Tooltip>
+                                                            }
+                                                        >
                                                         <Button
                                                             variant="outline-secondary"
                                                             size="sm"
@@ -250,6 +319,7 @@ function DashboardPage() {
                                                         >
                                                             {device.enabled ? 'Disable' : 'Enable'}
                                                         </Button>
+                                                        </OverlayTrigger>
                                                         <Button
                                                             variant="outline-light"
                                                             size="sm"
@@ -267,24 +337,7 @@ function DashboardPage() {
                                                         style={{ background: 'rgba(255,255,255,0.04)' }}
                                                     >
                                                         <td colSpan={7} className="py-2 px-3">
-                                                            {speciesCache[device.id] === undefined ? (
-                                                                <Spinner animation="border" size="sm" variant="light" />
-                                                            ) : speciesCache[device.id].length === 0 ? (
-                                                                <span className="text-white-50 small">No target species configured</span>
-                                                            ) : (
-                                                                <div className="d-flex gap-2 flex-wrap">
-                                                                    {speciesCache[device.id].map(t => (
-                                                                        <Badge
-                                                                            key={t.specie}
-                                                                            bg="dark"
-                                                                            className="border border-secondary"
-                                                                            style={{ fontSize: '0.78em' }}
-                                                                        >
-                                                                                                                            {speciesLabels[t.specie] ?? t.specie} — {t.threshold}%
-                                                                        </Badge>
-                                                                    ))}
-                                                                </div>
-                                                            )}
+                                                            <SpeciesBadges deviceId={device.id} />
                                                         </td>
                                                     </tr>
                                                 )}
@@ -292,18 +345,132 @@ function DashboardPage() {
                                         ))}
                                     </tbody>
                                 </Table>
-                            )}
-                        </Col>
-                    </Row>
+                            </div>
 
-                    {pageData.totalPages > 1 && (
-                        <Row>
-                            <Col className="d-flex justify-content-center" data-bs-theme="dark">
-                                <Pagination>{paginationItems()}</Pagination>
-                            </Col>
-                        </Row>
-                    )}</>}
+                            {/* Mobile card grid — hidden on md+ */}
+                            <div className="d-md-none">
+                                {pageData.content.length === 0 ? (
+                                    <p className="text-center text-white-50 py-4">No devices found.</p>
+                                ) : (
+                                    <Row className="g-3">
+                                        {pageData.content.map(device => (
+                                            <Col key={device.id} xs={12} sm={6}>
+                                                <Card
+                                                    bg="dark"
+                                                    className="h-100 border border-secondary"
+                                                    style={{ background: 'rgba(255,255,255,0.04)' }}
+                                                >
+                                                    <Card.Body className="d-flex flex-column gap-2">
+                                                        <div className="d-flex justify-content-between align-items-start">
+                                                            <span className="fw-semibold text-white">{device.name}</span>
+                                                            <Button
+                                                                variant="outline-secondary"
+                                                                size="sm"
+                                                                onClick={() => handleOpenActionModal(device)}
+                                                                style={{ lineHeight: 1, padding: '2px 8px' }}
+                                                            >
+                                                                &#8942;
+                                                            </Button>
+                                                        </div>
+                                                        <div className="d-flex gap-2 flex-wrap">
+                                                            <Hint text={STATE_HINTS[device.state] ?? device.state} placement="bottom">
+                                                            <Badge bg={device.state === 'PROVISIONED' ? 'success' : 'secondary'}>
+                                                                {device.state}
+                                                            </Badge>
+                                                            </Hint>
+                                                            <Badge bg={device.enabled ? 'success' : 'danger'}>
+                                                                {device.enabled ? 'Enabled' : 'Disabled'}
+                                                            </Badge>
+                                                        </div>
+                                                        <Hint text={RUN_MODE_HINTS[device.runMode] ?? device.runMode} placement="bottom">
+                                                        <div className="text-white-50 small text-capitalize" style={{ cursor: 'help' }}>
+                                                            {device.runMode?.toLowerCase().replaceAll('_', ' ')}
+                                                        </div>
+                                                        </Hint>
+                                                        <Hint text={LAST_SEEN_HINT} placement="bottom">
+                                                        <div className="small mt-auto" style={{ cursor: 'help' }}>
+                                                            <span className="text-white-50">Last seen: </span>
+                                                            <LastSeenCell lastSeenAt={device.lastSeenAt} />
+                                                        </div>
+                                                        </Hint>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                )}
+                            </div>
+                        </>)}
+
+                        {pageData.totalPages > 1 && (
+                            <Row className="mt-3">
+                                <Col className="d-flex justify-content-center" data-bs-theme="dark">
+                                    <Pagination>{paginationItems()}</Pagination>
+                                </Col>
+                            </Row>
+                        )}
+                    </>}
                 </Card>
+
+                {/* Mobile action modal */}
+                <Modal
+                    show={actionDevice !== null}
+                    onHide={() => setActionDevice(null)}
+                    centered
+                    data-bs-theme="dark"
+                >
+                    {actionDevice && <>
+                        <Modal.Header closeButton>
+                            <Modal.Title>{actionDevice.name}</Modal.Title>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <div className="d-flex gap-2 flex-wrap mb-3">
+                                <Hint text={STATE_HINTS[actionDevice.state] ?? actionDevice.state}>
+                                <Badge bg={actionDevice.state === 'PROVISIONED' ? 'success' : 'secondary'}>
+                                    {actionDevice.state}
+                                </Badge>
+                                </Hint>
+                                <Badge bg={actionDevice.enabled ? 'success' : 'danger'}>
+                                    {actionDevice.enabled ? 'Enabled' : 'Disabled'}
+                                </Badge>
+                            </div>
+                            <p className="mb-1 small text-white-50">
+                                Run mode: <Hint text={RUN_MODE_HINTS[actionDevice.runMode] ?? actionDevice.runMode}>
+                                    <span className="text-white text-capitalize" style={{ cursor: 'help', borderBottom: '1px dashed rgba(255,255,255,0.3)' }}>{actionDevice.runMode?.toLowerCase().replaceAll('_', ' ')}</span>
+                                </Hint>
+                            </p>
+                            <p className="mb-1 small text-white-50">
+                                Created: <span className="text-white">{new Date(actionDevice.createdAt).toLocaleDateString()}</span>
+                            </p>
+                            <p className="mb-3 small text-white-50">
+                                Last seen: <Hint text={LAST_SEEN_HINT}><span style={{ cursor: 'help' }}><LastSeenCell lastSeenAt={actionDevice.lastSeenAt} /></span></Hint>
+                            </p>
+                            <div className="border-top border-secondary pt-3">
+                                <p className="small text-white-50 mb-2">Target species</p>
+                                <SpeciesBadges deviceId={actionDevice.id} />
+                            </div>
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <OverlayTrigger
+                                placement="top"
+                                overlay={actionDevice.enabled
+                                    ? <Tooltip>The device stays active but detections will be ignored by the system.</Tooltip>
+                                    : <Tooltip>Re-enable the device so its detections are processed.</Tooltip>
+                                }
+                            >
+                            <Button
+                                variant={actionDevice.enabled ? 'outline-warning' : 'outline-success'}
+                                onClick={() => handleToggleEnabled(actionDevice)}
+                            >
+                                {actionDevice.enabled ? 'Disable' : 'Enable'}
+                            </Button>
+                            </OverlayTrigger>
+                            <Button variant="primary" onClick={() => handleEdit(actionDevice)}>
+                                Edit
+                            </Button>
+                        </Modal.Footer>
+                    </>}
+                </Modal>
             </Container>
         } />
     );

@@ -11,7 +11,7 @@ public interface DeviceRegistrationTokenRepo extends JpaRepository<DeviceRegistr
     @Query("""
             select t 
             from DeviceRegistrationToken t
-            join t.device d
+            join fetch t.device d
             where t.token = :token
             """)
     DeviceRegistrationToken findByTokenFetchDevice(String token);
