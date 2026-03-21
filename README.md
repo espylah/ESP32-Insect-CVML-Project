@@ -2,6 +2,8 @@
 
 An IoT platform for monitoring insect activity. ESP32 devices perform on-device species detection using a lightweight YOLO model and report results to a central backend. Users manage their devices and view detection data through a web dashboard.
 
+> **Project status:** see [TIMELINE.md](TIMELINE.md) for what is implemented and what is still to do, and how to contribute.
+
 ---
 
 ## Overview
