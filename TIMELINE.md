@@ -34,10 +34,10 @@ Legend: ✅ Done &nbsp; 🚧 In progress &nbsp; ⬜ Not started
 | 15 | Serial provisioning console (`wifi` + `register`) | ✅ |
 | 16 | Wi-Fi connection with event-based confirmation | ✅ |
 | 17 | Device registration over HTTP(S) | ✅ |
-| 18 | API key persistence in NVS after registration | ⬜ |
+| 18 | API key + device UUID persistence in secure NVS after registration | ✅ |
 | 19 | Authenticated detection reporting to backend | ⬜ |
 | 20 | On-device YOLO inference | ⬜ |
-| 21 | Species configuration pull from backend | ⬜ |
+| 21 | Species configuration pull from backend (post-registration config fetch) | ✅ |
 
 ---
 
@@ -86,5 +86,4 @@ Apisentra is open source. Contributions are welcome.
 
 - Detection event ingestion & storage (items 8–10)
 - On-device YOLO inference integration (item 20)
-- API key NVS persistence (item 18)
 - Frontend detection visualisation (items 29–30)

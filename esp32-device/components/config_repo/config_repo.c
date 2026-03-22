@@ -201,3 +201,26 @@ esp_err_t config_repo_set_config_version(config_repo_t *repo, int version)
     cJSON_ReplaceItemInObject(repo->root, "configVersion", cJSON_CreateNumber(version));
     return nvs_save_json(repo->root);
 }
+
+const char *config_repo_get_name(config_repo_t *repo)
+{
+    cJSON *item = cJSON_GetObjectItemCaseSensitive(repo->root, "name");
+    return cJSON_IsString(item) ? item->valuestring : NULL;
+}
+
+esp_err_t config_repo_set_name(config_repo_t *repo, const char *name)
+{
+    cJSON_ReplaceItemInObject(repo->root, "name", cJSON_CreateString(name));
+    return nvs_save_json(repo->root);
+}
+
+cJSON *config_repo_get_targets(config_repo_t *repo)
+{
+    return cJSON_GetObjectItemCaseSensitive(repo->root, "targets");
+}
+
+esp_err_t config_repo_set_targets(config_repo_t *repo, cJSON *targets_array)
+{
+    cJSON_ReplaceItemInObject(repo->root, "targets", cJSON_Duplicate(targets_array, 1));
+    return nvs_save_json(repo->root);
+}

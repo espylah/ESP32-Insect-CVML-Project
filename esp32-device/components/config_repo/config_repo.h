@@ -48,3 +48,14 @@ esp_err_t config_repo_set_threshold(config_repo_t *repo, int threshold);
 esp_err_t config_repo_set_run_mode(config_repo_t *repo, int run_mode);
 esp_err_t config_repo_set_unixtime(config_repo_t *repo, long unixtime);
 esp_err_t config_repo_set_config_version(config_repo_t *repo, int version);
+
+/**
+ * Backend-assigned device configuration
+ */
+const char* config_repo_get_name(config_repo_t *repo);
+esp_err_t   config_repo_set_name(config_repo_t *repo, const char *name);
+
+// targets: cJSON array of {"specie":"...","threshold":0.7} objects.
+// Getter returns a borrowed pointer into repo->root — do not free.
+cJSON*    config_repo_get_targets(config_repo_t *repo);
+esp_err_t config_repo_set_targets(config_repo_t *repo, cJSON *targets_array);

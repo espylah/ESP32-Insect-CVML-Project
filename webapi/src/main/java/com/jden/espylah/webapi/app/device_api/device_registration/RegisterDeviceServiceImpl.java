@@ -14,7 +14,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.nio.ByteBuffer;
 
 @Log4j2
 @Component
@@ -59,13 +58,8 @@ public class RegisterDeviceServiceImpl implements RegisterDeviceService {
 
         deviceRegistrationTokenRepo.save(deviceRegistrationToken);
 
-        byte[] bytes = ByteBuffer.allocate(16)
-                .putLong(device.getId().getMostSignificantBits())
-                .putLong(device.getId().getLeastSignificantBits())
-                .array();
-
-        log.info("Device {}:[{}]  registered successfully", device.getId(),device.getDeviceMacStr());
-        return new DeviceRegistrationResponse(bytes, device.getRunMode(), apiKey);
+        log.info("Device {}:[{}]  registered successfully", device.getId(), device.getDeviceMacStr());
+        return new DeviceRegistrationResponse(device.getId(), device.getRunMode(), apiKey);
     }
 
 

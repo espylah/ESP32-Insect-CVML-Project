@@ -12,7 +12,7 @@ public interface DeviceRepo extends JpaRepository<Device, UUID>, JpaSpecificatio
 
     @Query("""
             select d from Device d
-                join fetch d.speciesTargets t
+                left join fetch d.speciesTargets t
                     where d.id = :uuid
             """)
     Optional<Device> findByIdAndFetchTree(UUID uuid);

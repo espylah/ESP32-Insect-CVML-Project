@@ -45,6 +45,10 @@ public class DeviceApiController {
                 log.info("Exception 4xx : {}", e.toString());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getErrorCode().name());
             }
+            case DEVICE_NOT_FOUND -> {
+                log.info("Exception 404 : {}", e.toString());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getErrorCode().name());
+            }
             default -> {
                 log.error("UNEXPECTED APPRUNTIME ERRORCODE:{}->{}", e.getErrorCode(), e.toString());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(HttpStatus.INTERNAL_SERVER_ERROR.name());

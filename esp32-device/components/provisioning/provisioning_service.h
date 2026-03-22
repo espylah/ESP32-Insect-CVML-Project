@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include "esp_err.h"
 
 #define PROV_QUEUE_LEN 2
 
@@ -30,3 +32,13 @@ prov_status_t provisioning_service_get_status(void);
 
 // Reset status to IDLE to allow a fresh attempt.
 void provisioning_service_reset(void);
+
+// Load the persisted API key from secure NVS.
+// Returns ESP_OK on success, ESP_ERR_NVS_NOT_FOUND if not yet provisioned.
+// out_buf must be at least 65 bytes (64-char key + null terminator).
+esp_err_t provisioning_service_load_api_key(char *out_buf, size_t max_len);
+
+// Load the persisted device UUID string from secure NVS.
+// Returns ESP_OK on success, ESP_ERR_NVS_NOT_FOUND if not yet provisioned.
+// out_buf must be at least 37 bytes (36-char UUID + null terminator).
+esp_err_t provisioning_service_load_device_id(char *out_buf, size_t max_len);
