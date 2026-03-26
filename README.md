@@ -1,6 +1,6 @@
-# Apisentra
+# ESP-YLAH-CV-ML
 
-An IoT platform for monitoring insect activity. ESP32 devices perform on-device species detection using a lightweight YOLO model and report results to a central backend. Users manage their devices and view detection data through a web dashboard.
+An IoT platform for monitoring insect activity. ESP32 devices perform on-device species detection using CV blob detection and a custom CNN and report results to a central backend. Users manage their devices and view detection data through a web dashboard.
 
 > **Project status:** see [TIMELINE.md](TIMELINE.md) for what is implemented and what is still to do, and how to contribute.
 
@@ -35,7 +35,7 @@ web/
 | Backend | Java 25, Spring Boot 4, Spring Security, JPA/Hibernate |
 | Database | H2 (default, in-memory) · PostgreSQL (production profile) |
 | Frontend | React 19, Vite, Bootstrap 5, React Router |
-| Device | ESP32, YOLO (on-device inference) |
+| Device | ESP32, CV blob detection + custom CNN (on-device inference) |
 
 ---
 
@@ -168,7 +168,7 @@ Schema must exist before running with `DDL_AUTO=none`. Use `DDL_AUTO=create` on 
 Each ESP32 node is a self-contained edge inference unit:
 
 - **Camera** — captures images via an OV2640 or compatible module
-- **On-device YOLO** — runs a lightweight model to detect target species
+- **On-device inference** — CV blob detection pre-filters candidates, then a custom CNN classifies target species
 - **Backend reporting** — sends detection events (species, confidence, timestamp) to the API using a long-lived API key obtained during provisioning
 
 The backend does **not** run inference; it only stores and coordinates results.

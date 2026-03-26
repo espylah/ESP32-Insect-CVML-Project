@@ -1,6 +1,8 @@
 # Name,   Type, SubType, Offset,   Size,   Flags
-nvs,  data, nvs, 0x9000,  0x6000, encrypted
-nvs_usr,  data, nvs, 0xF000,  0x6000, encrypted
-otadata,   data, ota,     0x9C000, 0x2000,
-app0,      app,  ota_0,   0x100000, 0x180000,
-app1,      app,  ota_1,   0x280000, 0x180000,
+# 8MB flash — OTA partitions trimmed to 3.375MB each to fit 128KB model partition.
+nvs,      data, nvs,     0x9000,  0x6000, encrypted
+nvs_usr,  data, nvs,     0xF000,  0x6000, encrypted
+otadata,  data, ota,     0x1E000, 0x2000,
+app0,     app,  ota_0,   0x100000, 0x360000,
+app1,     app,  ota_1,   0x460000, 0x360000,
+model,    data, 0x40,    0x7C0000, 0x40000,

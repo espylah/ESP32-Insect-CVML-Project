@@ -23,4 +23,21 @@ config DEVICE_REGISTER_PATH
     default "/device-api/register"
     help The api path to register the ESP32 device.
 
+config SKIP_PROVISIONING
+    bool "Skip provisioning (BLE + serial wait) for testing"
+    default n
+    help
+        When enabled, the device skips BLE initialisation, the serial
+        provisioning console, and the 5-second wait on every boot.
+        Use this to test sensing/inference without provisioning the device.
+
+config TRAINING_MODE
+    bool "Training mode: save blob crops to SD card"
+    default n
+    help
+        When enabled, each detected blob is extracted from the raw frame and
+        saved as a JPEG to /sdcard/blobs/<boot>/ on the SD card.
+        Use this to collect ESP32-camera images for CNN retraining.
+        Requires an SD card to be present.
+
 endmenu

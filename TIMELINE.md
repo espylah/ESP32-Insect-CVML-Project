@@ -36,7 +36,7 @@ Legend: ✅ Done &nbsp; 🚧 In progress &nbsp; ⬜ Not started
 | 17 | Device registration over HTTP(S) | ✅ |
 | 18 | API key + device UUID persistence in secure NVS after registration | ✅ |
 | 19 | Authenticated detection reporting to backend | ⬜ |
-| 20 | On-device YOLO inference | ⬜ |
+| 20 | On-device CV blob detection + custom CNN inference | ⬜ |
 | 21 | Species configuration pull from backend (post-registration config fetch) | ✅ |
 
 ---
@@ -85,5 +85,5 @@ Apisentra is open source. Contributions are welcome.
 ### Areas most needing help
 
 - Detection event ingestion & storage (items 8–10)
-- On-device YOLO inference integration (item 20)
+- On-device CV blob detection + custom CNN inference (item 20)
 - Frontend detection visualisation (items 29–30)

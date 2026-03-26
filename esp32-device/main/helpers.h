@@ -1,6 +1,6 @@
 #include "esp_log.h"
 
-#define SAVE_TO_SD false;
+#define SAVE_TO_SD true;
 
 #define IF_CAM_FB_NULL(fb)                                \
     do                                                    \
